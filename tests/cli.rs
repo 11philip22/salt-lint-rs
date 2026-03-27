@@ -3,8 +3,11 @@ use std::process::Command;
 use clap::Parser;
 use salt_lint_rs::app::App;
 use salt_lint_rs::cli::CliArgs;
+use salt_lint_rs::config::Config;
 use salt_lint_rs::file_types::FileKind;
 use salt_lint_rs::formatter::FormatterKind;
+use salt_lint_rs::fs::{map_input_path, resolve_input_files};
+use tempfile::tempdir;
 
 #[test]
 fn parses_supported_flags() {
@@ -118,4 +121,52 @@ fn binary_without_args_exits_with_one() {
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
     assert!(stderr.contains("Usage:"));
+}
+
+#[test]
+fn directory_input_maps_to_init_sls() {
+    let tempdir = tempdir().expect("tempdir should be created");
+    let cwd = tempdir.path();
+    let states_dir = cwd.join("states");
+    std::fs::create_dir(&states_dir).expect("states dir should exist");
+
+    let mapped = map_input_path(std::path::Path::new("states"), cwd)
+        .expect("directory input should map cleanly");
+
+    assert_eq!(mapped, std::path::PathBuf::from("states").join("init.sls"));
+}
+
+#[test]
+fn duplicate_inputs_are_suppressed() {
+    let tempdir = tempdir().expect("tempdir should be created");
+    let config = Config::empty(tempdir.path().to_path_buf());
+    let files = resolve_input_files(
+        &[
+            std::path::PathBuf::from("top.sls"),
+            std::path::PathBuf::from("top.sls"),
+        ],
+        tempdir.path(),
+        &config,
+    )
+    .expect("file resolution should succeed");
+
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].path, std::path::PathBuf::from("top.sls"));
+}
+
+#[test]
+fn app_warns_about_unsupported_rulesdirs() {
+    let tempdir = tempdir().expect("tempdir should be created");
+    let args = CliArgs::parse_from(["salt-lint", "-r", "custom-rules", "top.sls"]);
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let exit_code = App::with_current_dir(tempdir.path())
+        .run(args, &mut stdout, &mut stderr)
+        .expect("app run should succeed");
+
+    assert_eq!(exit_code, 0);
+    let stderr = String::from_utf8(stderr).expect("stderr should be utf8");
+    assert!(stderr.contains("custom Python rule directories are unsupported"));
+    assert!(stderr.contains("custom-rules"));
 }
