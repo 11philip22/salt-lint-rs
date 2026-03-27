@@ -1,3 +1,4 @@
+use crate::file_types::FileKind;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -29,6 +30,7 @@ pub struct RuleMeta {
     pub description: &'static str,
     pub severity: Severity,
     pub tags: &'static [&'static str],
+    pub languages: &'static [FileKind],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

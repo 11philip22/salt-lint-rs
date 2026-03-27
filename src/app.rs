@@ -1,4 +1,6 @@
+use std::collections::BTreeSet;
 use std::env;
+use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -7,7 +9,10 @@ use thiserror::Error;
 
 use crate::cli::CliArgs;
 use crate::config::{Config, ConfigError};
-use crate::fs;
+use crate::engine::context::RuleContext;
+use crate::formatter::{FormatterKind, format_problems};
+use crate::fs as lint_fs;
+use crate::rules;
 
 #[derive(Debug, Default, Clone)]
 pub struct App {
@@ -67,8 +72,21 @@ impl App {
             )?;
         }
 
-        let _input_files = fs::resolve_input_files(&args.files, &cwd, &config)?;
-        Ok(0)
+        let input_files = lint_fs::resolve_input_files(&args.files, &cwd, &config)?;
+        let tags = config.tags.iter().cloned().collect::<BTreeSet<_>>();
+        let problems = lint_files(&input_files, &config, &tags, stderr)?;
+
+        if problems.is_empty() {
+            return Ok(0);
+        }
+
+        let output = format_problems(
+            &problems,
+            FormatterKind::from_flags(config.json, config.severity),
+            !args.no_color || args.force_color,
+        );
+        write!(stdout, "{output}")?;
+        Ok(2)
     }
 
     fn current_dir(&self) -> Result<PathBuf, AppError> {
@@ -77,4 +95,38 @@ impl App {
             None => Ok(env::current_dir()?),
         }
     }
+}
+
+fn lint_files<WErr>(
+    files: &[crate::fs::LintFile],
+    config: &Config,
+    tags: &BTreeSet<String>,
+    stderr: &mut WErr,
+) -> Result<Vec<crate::problem::Problem>, AppError>
+where
+    WErr: Write,
+{
+    let collection = rules::builtin_rules();
+    let mut problems = Vec::new();
+
+    for file in files {
+        let text = match fs::read_to_string(&file.disk_path) {
+            Ok(text) => text,
+            Err(err) => {
+                writeln!(
+                    stderr,
+                    "WARNING: Couldn't open {} - {}",
+                    file.path.display(),
+                    err
+                )?;
+                continue;
+            }
+        };
+
+        let filename = file.path.to_string_lossy().into_owned();
+        let context = RuleContext::new(&filename, file.kind, config);
+        problems.extend(collection.run(&context, &text, tags, &config.skip_list));
+    }
+
+    Ok(problems)
 }
