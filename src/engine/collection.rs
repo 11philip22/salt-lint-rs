@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::engine::context::RuleContext;
 use crate::engine::rule::Rule;
@@ -25,6 +25,44 @@ impl RuleCollection {
 
     pub fn is_empty(&self) -> bool {
         self.rules.is_empty()
+    }
+
+    pub fn render_rules(&self) -> String {
+        let mut metas = self
+            .rules
+            .iter()
+            .map(|rule| rule.meta())
+            .collect::<Vec<_>>();
+        metas.sort_by(|left, right| left.id.cmp(right.id));
+        metas
+            .into_iter()
+            .map(|meta| format!("{}: {}\n {}", meta.id, meta.shortdesc, meta.description))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    pub fn render_tags(&self) -> String {
+        let mut tags = BTreeMap::<&str, Vec<&str>>::new();
+
+        for rule in &self.rules {
+            let meta = rule.meta();
+            for tag in meta.tags {
+                tags.entry(tag).or_default().push(meta.id);
+            }
+        }
+
+        tags.into_iter()
+            .map(|(tag, mut ids)| {
+                ids.sort();
+                let ids = ids
+                    .into_iter()
+                    .map(|id| format!("[{id}]"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{tag} {ids}")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     pub fn run(
@@ -110,7 +148,7 @@ fn rule_enabled(
     true
 }
 
-fn sort_problems(problems: &mut [Problem]) {
+pub fn sort_problems(problems: &mut [Problem]) {
     problems.sort_by(|left, right| {
         left.filename
             .cmp(&right.filename)

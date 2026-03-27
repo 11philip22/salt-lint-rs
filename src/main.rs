@@ -1,8 +1,9 @@
+use std::io::IsTerminal;
 use std::process::ExitCode;
 
 use clap::Parser;
 
-use salt_lint_rs::app::{App, AppError};
+use salt_lint_rs::app::{App, AppError, read_stdin_if_available};
 use salt_lint_rs::cli::CliArgs;
 
 fn main() -> ExitCode {
@@ -19,7 +20,13 @@ fn main() -> ExitCode {
 }
 
 fn run(args: CliArgs, app: App) -> Result<i32, AppError> {
+    let mut stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
-    app.run(args, &mut stdout, &mut stderr)
+    let stdin_text = if stdin.is_terminal() {
+        None
+    } else {
+        read_stdin_if_available(&mut stdin)?
+    };
+    app.run_with_input(args, stdin_text, &mut stdout, &mut stderr)
 }
