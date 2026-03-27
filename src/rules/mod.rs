@@ -9,7 +9,18 @@ use crate::engine::collection::RuleCollection;
 
 pub fn builtin_rules() -> RuleCollection {
     let mut collection = RuleCollection::new();
-    collection.register(Box::new(formatting::TrailingWhitespaceRule));
-    collection.register(Box::new(formatting::LineTooLongRule));
+
+    for rule in formatting::all_rules() {
+        collection.register(rule);
+    }
+
+    for rule in jinja::all_rules() {
+        collection.register(rule);
+    }
+
+    for rule in deprecations::all_rules() {
+        collection.register(rule);
+    }
+
     collection
 }
