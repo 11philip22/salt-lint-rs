@@ -169,5 +169,5 @@ fn collection_sorts_problems_by_id_when_line_matches_are_equal() {
 #[test]
 fn builtin_rules_register_minimal_host_validation_rules() {
     let collection = rules::builtin_rules();
-    assert_eq!(collection.len(), 23);
+    assert_eq!(collection.len(), 32);
 }

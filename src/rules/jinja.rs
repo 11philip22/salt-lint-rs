@@ -29,6 +29,24 @@ const JINJA_COMMENT_META: RuleMeta = RuleMeta {
     languages: JINJA_LANGUAGES,
 };
 
+const JINJA_VARIABLE_META: RuleMeta = RuleMeta {
+    id: "206",
+    shortdesc: "Jinja variables should have spaces before and after: '{{ var_name }}'",
+    description: "Jinja variables should have spaces before and after: '{{ var_name }}'",
+    severity: Severity::Low,
+    tags: JINJA_TAGS,
+    languages: JINJA_LANGUAGES,
+};
+
+const JINJA_PILLAR_GRAINS_META: RuleMeta = RuleMeta {
+    id: "211",
+    shortdesc: "pillar.get or grains.get should be formatted differently",
+    description: "pillar.get and grains.get should always be formatted like salt['pillar.get']('item'), grains['item1'] or  pillar.get('item')",
+    severity: Severity::High,
+    tags: JINJA_TAGS,
+    languages: JINJA_LANGUAGES,
+};
+
 static RAW_BLOCK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?s)\{%[+-]?\s?raw\s?[+-]?%\}.*?\{%[+-]?\s?endraw\s?[+-]?%\}")
         .expect("valid raw block regex")
@@ -40,6 +58,14 @@ static JINJA_STATEMENT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 static JINJA_COMMENT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\{#[^ \-\+]|\{#[\-\+][^ ]|[^ \-\+]#\}|[^ ][\-\+]#\}")
         .expect("valid jinja comment regex")
+});
+static JINJA_VARIABLE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\{\{[^ {}\-\+\d]|\{\{[-\+][^ {}]|[^ {}\-\+\d]\}\}|[^ {}][-\+\d]\}\}")
+        .expect("valid jinja variable regex")
+});
+static JINJA_PILLAR_GRAINS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\{\{(?: |\-|\+)?(?:pillar|grains)\.get\[[^}]+\}\}")
+        .expect("valid jinja pillar or grains regex")
 });
 
 pub struct JinjaStatementHasSpacesRule;
@@ -55,6 +81,8 @@ impl Rule for JinjaStatementHasSpacesRule {
 }
 
 pub struct JinjaCommentHasSpacesRule;
+pub struct JinjaVariableHasSpacesRule;
+pub struct JinjaPillarGrainsGetFormatRule;
 
 impl Rule for JinjaCommentHasSpacesRule {
     fn meta(&self) -> &'static RuleMeta {
@@ -63,6 +91,26 @@ impl Rule for JinjaCommentHasSpacesRule {
 
     fn check_text(&self, _ctx: &RuleContext<'_>, text: &str) -> Vec<ProblemSeed> {
         scan_escaped_lines(text, self.meta(), &JINJA_COMMENT_REGEX)
+    }
+}
+
+impl Rule for JinjaVariableHasSpacesRule {
+    fn meta(&self) -> &'static RuleMeta {
+        &JINJA_VARIABLE_META
+    }
+
+    fn check_text(&self, _ctx: &RuleContext<'_>, text: &str) -> Vec<ProblemSeed> {
+        scan_escaped_lines(text, self.meta(), &JINJA_VARIABLE_REGEX)
+    }
+}
+
+impl Rule for JinjaPillarGrainsGetFormatRule {
+    fn meta(&self) -> &'static RuleMeta {
+        &JINJA_PILLAR_GRAINS_META
+    }
+
+    fn check_text(&self, _ctx: &RuleContext<'_>, text: &str) -> Vec<ProblemSeed> {
+        scan_escaped_lines(text, self.meta(), &JINJA_PILLAR_GRAINS_REGEX)
     }
 }
 
@@ -112,9 +160,11 @@ pub fn all_rules() -> Vec<Box<dyn Rule>> {
     vec![
         Box::new(JinjaStatementHasSpacesRule),
         Box::new(JinjaCommentHasSpacesRule),
+        Box::new(JinjaVariableHasSpacesRule),
+        Box::new(JinjaPillarGrainsGetFormatRule),
     ]
 }
 
 pub fn builtin_rule_count() -> usize {
-    2
+    4
 }

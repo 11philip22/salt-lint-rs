@@ -184,5 +184,8 @@ fn builtin_rule_collection_contains_low_risk_rules_and_deprecations() {
         formatting::builtin_rule_count()
             + jinja::builtin_rule_count()
             + deprecations::builtin_rule_count()
+            + salt_lint_rs::rules::files::builtin_rule_count()
+            + salt_lint_rs::rules::yaml::builtin_rule_count()
+            + salt_lint_rs::rules::fulltext::builtin_rule_count()
     );
 }

@@ -22,5 +22,17 @@ pub fn builtin_rules() -> RuleCollection {
         collection.register(rule);
     }
 
+    for rule in files::all_rules() {
+        collection.register(rule);
+    }
+
+    for rule in yaml::all_rules() {
+        collection.register(rule);
+    }
+
+    for rule in fulltext::all_rules() {
+        collection.register(rule);
+    }
+
     collection
 }
