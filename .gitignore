@@ -1,3 +1,5 @@
 /salt-lint
 /plan
 /target
+/nginx-formula
+/docker-formula
