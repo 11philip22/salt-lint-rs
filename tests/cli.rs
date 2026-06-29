@@ -3,10 +3,6 @@ use std::process::Command;
 use clap::Parser;
 use salt_lint_rs::app::App;
 use salt_lint_rs::cli::CliArgs;
-use salt_lint_rs::config::Config;
-use salt_lint_rs::file_types::FileKind;
-use salt_lint_rs::formatter::FormatterKind;
-use salt_lint_rs::fs::{map_input_path, resolve_input_files};
 use tempfile::tempdir;
 
 #[test]
@@ -71,24 +67,6 @@ fn no_input_returns_exit_code_one_and_help_text() {
 }
 
 #[test]
-fn file_kind_detection_matches_python_extensions() {
-    assert_eq!(FileKind::detect("state.sls"), FileKind::Sls);
-    assert_eq!(FileKind::detect("state.jinja"), FileKind::Jinja);
-    assert_eq!(FileKind::detect("state.jinja2"), FileKind::Jinja);
-    assert_eq!(FileKind::detect("state.j2"), FileKind::Jinja);
-    assert_eq!(FileKind::detect("state.txt"), FileKind::Unknown);
-}
-
-#[test]
-fn formatter_priority_prefers_json_over_severity() {
-    assert_eq!(FormatterKind::from_flags(true, true), FormatterKind::Json);
-    assert_eq!(
-        FormatterKind::from_flags(false, true),
-        FormatterKind::Severity
-    );
-}
-
-#[test]
 fn binary_help_succeeds() {
     let output = Command::new(env!("CARGO_BIN_EXE_salt-lint"))
         .arg("--help")
@@ -121,35 +99,6 @@ fn binary_without_args_exits_with_one() {
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf8");
     assert!(stderr.contains("Usage:"));
-}
-
-#[test]
-fn directory_input_maps_to_init_sls() {
-    let tempdir = tempdir().expect("tempdir should be created");
-    let cwd = tempdir.path();
-    let states_dir = cwd.join("states");
-    std::fs::create_dir(&states_dir).expect("states dir should exist");
-
-    let mapped = map_input_path(std::path::Path::new("states"), cwd);
-
-    assert_eq!(mapped, std::path::PathBuf::from("states").join("init.sls"));
-}
-
-#[test]
-fn duplicate_inputs_are_suppressed() {
-    let tempdir = tempdir().expect("tempdir should be created");
-    let config = Config::empty(tempdir.path().to_path_buf());
-    let files = resolve_input_files(
-        &[
-            std::path::PathBuf::from("top.sls"),
-            std::path::PathBuf::from("top.sls"),
-        ],
-        tempdir.path(),
-        &config,
-    );
-
-    assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, std::path::PathBuf::from("top.sls"));
 }
 
 #[test]

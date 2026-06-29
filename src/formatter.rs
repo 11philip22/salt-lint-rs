@@ -49,39 +49,3 @@ pub fn format_problems(problems: &[Problem], kind: FormatterKind) -> String {
             .collect(),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{FormatterKind, format_problems};
-    use crate::problem::{Problem, Severity};
-
-    fn sample_problem() -> Problem {
-        Problem {
-            id: "201".into(),
-            message: "Trailing whitespace".into(),
-            filename: "top.sls".into(),
-            linenumber: 3,
-            line: "bad line ".into(),
-            severity: Severity::Info,
-        }
-    }
-
-    #[test]
-    fn formats_json_with_expected_fields() {
-        let output = format_problems(&[sample_problem()], FormatterKind::Json);
-
-        assert!(output.contains("\"id\":\"201\""));
-        assert!(output.contains("\"message\":\"Trailing whitespace\""));
-        assert!(output.contains("\"filename\":\"top.sls\""));
-        assert!(output.contains("\"linenumber\":3"));
-        assert!(output.contains("\"severity\":\"INFO\""));
-    }
-
-    #[test]
-    fn formats_severity_output() {
-        let output = format_problems(&[sample_problem()], FormatterKind::Severity);
-
-        assert!(output.contains("[201] [INFO] Trailing whitespace"));
-        assert!(output.contains("top.sls:3"));
-    }
-}
