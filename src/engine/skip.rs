@@ -1,16 +1,12 @@
-use std::collections::BTreeSet;
-
-pub fn parse_noqa_ids(line: &str) -> BTreeSet<&str> {
-    let Some((_, remainder)) = line.split_once("# noqa") else {
-        return BTreeSet::new();
-    };
-
-    remainder.split_whitespace().collect()
+pub fn parse_noqa_ids(line: &str) -> impl Iterator<Item = &str> {
+    line.split_once("# noqa")
+        .into_iter()
+        .flat_map(|(_, remainder)| remainder.split_whitespace())
 }
 
 pub fn text_has_noqa(text: &str, rule_id: &str) -> bool {
     text.lines()
-        .any(|line| parse_noqa_ids(line).contains(rule_id))
+        .any(|line| parse_noqa_ids(line).any(|id| id == rule_id))
 }
 
 #[cfg(test)]
@@ -29,7 +25,7 @@ mod tests {
 
     #[test]
     fn returns_empty_when_no_noqa_marker_exists() {
-        assert!(parse_noqa_ids("x").is_empty());
+        assert!(parse_noqa_ids("x").next().is_none());
     }
 
     #[test]

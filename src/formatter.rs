@@ -19,7 +19,7 @@ impl FormatterKind {
     }
 }
 
-pub fn format_problems(problems: &[Problem], kind: FormatterKind, _colored: bool) -> String {
+pub fn format_problems(problems: &[Problem], kind: FormatterKind) -> String {
     match kind {
         FormatterKind::Default => problems
             .iter()
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn formats_json_with_expected_fields() {
-        let output = format_problems(&[sample_problem()], FormatterKind::Json, false);
+        let output = format_problems(&[sample_problem()], FormatterKind::Json);
 
         assert!(output.contains("\"id\":\"201\""));
         assert!(output.contains("\"message\":\"Trailing whitespace\""));
@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn formats_severity_output() {
-        let output = format_problems(&[sample_problem()], FormatterKind::Severity, false);
+        let output = format_problems(&[sample_problem()], FormatterKind::Severity);
 
         assert!(output.contains("[201] [INFO] Trailing whitespace"));
         assert!(output.contains("top.sls:3"));

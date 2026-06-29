@@ -225,7 +225,3 @@ pub fn all_rules() -> Vec<Box<dyn Rule>> {
         Box::new(TypoRequireRule),
     ]
 }
-
-pub fn builtin_rule_count() -> usize {
-    7
-}

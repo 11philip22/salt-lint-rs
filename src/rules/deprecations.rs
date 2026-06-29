@@ -175,7 +175,3 @@ pub fn all_rules() -> Vec<Box<dyn Rule>> {
         .map(|rule| Box::new(rule) as Box<dyn Rule>)
         .collect()
 }
-
-pub fn builtin_rule_count() -> usize {
-    DEPRECATION_DEFS.len()
-}

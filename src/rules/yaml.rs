@@ -55,7 +55,3 @@ impl Rule for YamlHasOctalValueRule {
 pub fn all_rules() -> Vec<Box<dyn Rule>> {
     vec![Box::new(YamlHasOctalValueRule)]
 }
-
-pub fn builtin_rule_count() -> usize {
-    1
-}

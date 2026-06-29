@@ -124,7 +124,7 @@ fn scan_escaped_lines(text: &str, meta: &'static RuleMeta, regex: &Regex) -> Vec
                 return None;
             }
 
-            if parse_noqa_ids(line).contains(meta.id) {
+            if parse_noqa_ids(line).any(|id| id == meta.id) {
                 return None;
             }
 
@@ -163,8 +163,4 @@ pub fn all_rules() -> Vec<Box<dyn Rule>> {
         Box::new(JinjaVariableHasSpacesRule),
         Box::new(JinjaPillarGrainsGetFormatRule),
     ]
-}
-
-pub fn builtin_rule_count() -> usize {
-    4
 }

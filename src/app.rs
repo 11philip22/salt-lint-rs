@@ -1,14 +1,13 @@
 use std::collections::BTreeSet;
 use std::env;
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use clap::CommandFactory;
-use thiserror::Error;
 
 use crate::cli::CliArgs;
-use crate::config::{Config, ConfigError};
+use crate::config::Config;
 use crate::engine::collection::{RuleCollection, sort_problems};
 use crate::engine::context::RuleContext;
 use crate::formatter::{FormatterKind, format_problems};
@@ -20,13 +19,7 @@ pub struct App {
     current_dir_override: Option<PathBuf>,
 }
 
-#[derive(Debug, Error)]
-pub enum AppError {
-    #[error(transparent)]
-    Io(#[from] io::Error),
-    #[error(transparent)]
-    Config(#[from] ConfigError),
-}
+pub type AppError = Box<dyn std::error::Error + 'static>;
 
 impl App {
     pub fn with_current_dir(path: impl Into<PathBuf>) -> Self {
@@ -81,7 +74,7 @@ impl App {
         let cwd = self.current_dir()?;
         let config = Config::from_cli(&args, &cwd)?;
 
-        for path in &config.unsupported_rulesdirs {
+        for path in &config.rulesdir {
             writeln!(
                 stderr,
                 "WARNING: custom Python rule directories are unsupported and were ignored: {}",
@@ -89,7 +82,7 @@ impl App {
             )?;
         }
 
-        let input_files = lint_fs::resolve_input_files(&args.files, &cwd, &config)?;
+        let input_files = lint_fs::resolve_input_files(&args.files, &cwd, &config);
         let tags = config.tags.iter().cloned().collect::<BTreeSet<_>>();
         let problems = lint_inputs(
             &collection,
@@ -107,7 +100,6 @@ impl App {
         let output = format_problems(
             &problems,
             FormatterKind::from_flags(config.json, config.severity),
-            !args.no_color || args.force_color,
         );
         write!(stdout, "{output}")?;
         Ok(2)

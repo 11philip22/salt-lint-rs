@@ -79,7 +79,6 @@ rules:
 
     let config = Config::from_cli(&args, tempdir.path()).expect("config should load");
 
-    assert_eq!(config.verbosity, 2);
     assert_eq!(
         config.exclude_paths,
         vec![PathBuf::from("vendor"), PathBuf::from("exclude_this_file")]
@@ -93,7 +92,6 @@ rules:
         config.tags,
         vec!["deprecation".to_owned(), "formatting".to_owned()]
     );
-    assert!(config.use_default_rules);
     assert_eq!(
         config.rulesdir,
         vec![
@@ -101,7 +99,6 @@ rules:
             PathBuf::from("from-config-rules")
         ]
     );
-    assert_eq!(config.unsupported_rulesdirs, config.rulesdir);
 }
 
 #[test]

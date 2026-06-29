@@ -5,31 +5,18 @@ use std::path::{Path, PathBuf};
 
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use serde::Deserialize;
-use thiserror::Error;
 
 use crate::cli::CliArgs;
 
-#[derive(Debug, Error)]
-pub enum ConfigError {
-    #[error(transparent)]
-    Io(#[from] io::Error),
-    #[error(transparent)]
-    Yaml(#[from] serde_yaml::Error),
-    #[error("invalid ignore pattern for `{rule}`: {pattern}")]
-    InvalidIgnorePattern { rule: String, pattern: String },
-}
+pub type ConfigError = Box<dyn std::error::Error + 'static>;
 
 pub struct Config {
-    pub config_path: Option<PathBuf>,
-    pub verbosity: u8,
     pub exclude_paths: Vec<PathBuf>,
     pub skip_list: BTreeSet<String>,
     pub tags: Vec<String>,
-    pub use_default_rules: bool,
     pub rulesdir: Vec<PathBuf>,
     pub json: bool,
     pub severity: bool,
-    pub unsupported_rulesdirs: Vec<PathBuf>,
     cwd: PathBuf,
     rule_ignores: HashMap<String, RuleIgnoreSet>,
 }
@@ -37,16 +24,12 @@ pub struct Config {
 impl Config {
     pub fn empty(cwd: PathBuf) -> Self {
         Self {
-            config_path: None,
-            verbosity: 0,
             exclude_paths: Vec::new(),
             skip_list: BTreeSet::new(),
             tags: Vec::new(),
-            use_default_rules: false,
             rulesdir: Vec::new(),
             json: false,
             severity: false,
-            unsupported_rulesdirs: Vec::new(),
             cwd,
             rule_ignores: HashMap::new(),
         }
@@ -57,8 +40,6 @@ impl Config {
         let raw = load_raw_config(config_path.as_deref())?;
 
         let mut config = Self::empty(cwd.to_path_buf());
-        config.config_path = config_path;
-        config.verbosity = args.verbosity.saturating_add(raw.verbosity.unwrap_or(0));
 
         config.exclude_paths = args.exclude_paths.clone();
         config
@@ -83,11 +64,8 @@ impl Config {
             config.tags.extend(tags.into_vec());
         }
 
-        config.use_default_rules = args.use_default_rules || raw.use_default_rules.unwrap_or(false);
-
         config.rulesdir = args.rulesdir.clone();
         config.rulesdir.extend(raw.rulesdir.unwrap_or_default());
-        config.unsupported_rulesdirs = config.rulesdir.clone();
 
         config.json = raw.json.unwrap_or(args.json);
         config.severity = raw.severity.unwrap_or(args.severity);
@@ -169,11 +147,9 @@ fn normalize_path_string(path: impl AsRef<Path>) -> String {
 
 #[derive(Default, Deserialize)]
 struct RawConfig {
-    verbosity: Option<u8>,
     exclude_paths: Option<Vec<PathBuf>>,
     skip_list: Option<Vec<ScalarValue>>,
     tags: Option<TagsValue>,
-    use_default_rules: Option<bool>,
     rulesdir: Option<Vec<PathBuf>>,
     json: Option<bool>,
     severity: Option<bool>,
@@ -229,19 +205,13 @@ impl RuleIgnoreSet {
         {
             builder
                 .add_line(None, pattern)
-                .map_err(|_| ConfigError::InvalidIgnorePattern {
-                    rule: rule.to_owned(),
-                    pattern: pattern.to_owned(),
-                })?;
+                .map_err(|_| invalid_ignore_pattern(rule, pattern))?;
         }
 
         Ok(Self {
             matcher: builder
                 .build()
-                .map_err(|_| ConfigError::InvalidIgnorePattern {
-                    rule: rule.to_owned(),
-                    pattern: patterns.to_owned(),
-                })?,
+                .map_err(|_| invalid_ignore_pattern(rule, patterns))?,
         })
     }
 
@@ -256,4 +226,12 @@ impl RuleIgnoreSet {
             .matched_path_or_any_parents(&candidate, false)
             .is_ignore()
     }
+}
+
+fn invalid_ignore_pattern(rule: &str, pattern: &str) -> ConfigError {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        format!("invalid ignore pattern for `{rule}`: {pattern}"),
+    )
+    .into()
 }

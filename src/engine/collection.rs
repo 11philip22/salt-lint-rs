@@ -23,10 +23,6 @@ impl RuleCollection {
         self.rules.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.rules.is_empty()
-    }
-
     pub fn render_rules(&self) -> String {
         let mut metas = self
             .rules
@@ -85,7 +81,7 @@ impl RuleCollection {
                     continue;
                 }
 
-                if parse_noqa_ids(line).contains(meta.id) {
+                if parse_noqa_ids(line).any(|id| id == meta.id) {
                     continue;
                 }
 

@@ -108,7 +108,3 @@ impl Rule for NestedDictRule {
 pub fn all_rules() -> Vec<Box<dyn Rule>> {
     vec![Box::new(CmdRunQuietRule), Box::new(NestedDictRule)]
 }
-
-pub fn builtin_rule_count() -> usize {
-    2
-}

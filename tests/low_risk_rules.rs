@@ -175,17 +175,3 @@ fn deprecation_rules_are_data_driven_and_flag_matching_states() {
         assert!(results.iter().all(|problem| problem.id == expected_id));
     }
 }
-
-#[test]
-fn builtin_rule_collection_contains_low_risk_rules_and_deprecations() {
-    let collection = salt_lint_rs::rules::builtin_rules();
-    assert_eq!(
-        collection.len(),
-        formatting::builtin_rule_count()
-            + jinja::builtin_rule_count()
-            + deprecations::builtin_rule_count()
-            + salt_lint_rs::rules::files::builtin_rule_count()
-            + salt_lint_rs::rules::yaml::builtin_rule_count()
-            + salt_lint_rs::rules::fulltext::builtin_rule_count()
-    );
-}

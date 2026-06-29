@@ -130,8 +130,7 @@ fn directory_input_maps_to_init_sls() {
     let states_dir = cwd.join("states");
     std::fs::create_dir(&states_dir).expect("states dir should exist");
 
-    let mapped = map_input_path(std::path::Path::new("states"), cwd)
-        .expect("directory input should map cleanly");
+    let mapped = map_input_path(std::path::Path::new("states"), cwd);
 
     assert_eq!(mapped, std::path::PathBuf::from("states").join("init.sls"));
 }
@@ -147,15 +146,14 @@ fn duplicate_inputs_are_suppressed() {
         ],
         tempdir.path(),
         &config,
-    )
-    .expect("file resolution should succeed");
+    );
 
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].path, std::path::PathBuf::from("top.sls"));
 }
 
 #[test]
-fn app_warns_about_unsupported_rulesdirs() {
+fn app_warns_about_unsupported_rulesdir() {
     let tempdir = tempdir().expect("tempdir should be created");
     let args = CliArgs::parse_from(["salt-lint", "-r", "custom-rules", "top.sls"]);
     let mut stdout = Vec::new();

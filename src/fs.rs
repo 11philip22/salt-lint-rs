@@ -1,5 +1,4 @@
 use std::collections::BTreeSet;
-use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::config::Config;
@@ -12,16 +11,12 @@ pub struct LintFile {
     pub kind: FileKind,
 }
 
-pub fn resolve_input_files(
-    inputs: &[PathBuf],
-    cwd: &Path,
-    config: &Config,
-) -> io::Result<Vec<LintFile>> {
+pub fn resolve_input_files(inputs: &[PathBuf], cwd: &Path, config: &Config) -> Vec<LintFile> {
     let mut seen = BTreeSet::new();
     let mut files = Vec::new();
 
     for input in inputs {
-        let resolved_path = map_input_path(input, cwd)?;
+        let resolved_path = map_input_path(input, cwd);
 
         if config.is_excluded(&resolved_path) {
             continue;
@@ -39,10 +34,10 @@ pub fn resolve_input_files(
         });
     }
 
-    Ok(files)
+    files
 }
 
-pub fn map_input_path(input: &Path, cwd: &Path) -> io::Result<PathBuf> {
+pub fn map_input_path(input: &Path, cwd: &Path) -> PathBuf {
     let absolute = if input.is_absolute() {
         input.to_path_buf()
     } else {
@@ -50,9 +45,9 @@ pub fn map_input_path(input: &Path, cwd: &Path) -> io::Result<PathBuf> {
     };
 
     if absolute.is_dir() {
-        Ok(input.join("init.sls"))
+        input.join("init.sls")
     } else {
-        Ok(input.to_path_buf())
+        input.to_path_buf()
     }
 }
 
